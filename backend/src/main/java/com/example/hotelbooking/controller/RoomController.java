@@ -1,30 +1,50 @@
 package com.example.hotelbooking.controller;
 
+import com.example.hotelbooking.dto.RoomRequest;
 import com.example.hotelbooking.model.Room;
-import com.example.hotelbooking.repository.RoomRepository;
+import com.example.hotelbooking.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/rooms")
 @RequiredArgsConstructor
 public class RoomController {
 
-    private final RoomRepository roomRepository;
+    private final RoomService roomService;
 
-    @GetMapping
+    @GetMapping("/api/rooms")
     public List<Room> getRooms() {
-        return roomRepository.findByActiveTrue();
+        return roomService.getAllActiveRooms();
     }
 
-    @PostMapping("/seed")
-    public Room createRoom(@RequestBody Room room) {
-        room.setActive(true);
-        room.setCreatedAt(LocalDateTime.now());
+    @GetMapping("/api/rooms/{id}")
+    public Room getRoomById(@PathVariable String id) {
+        return roomService.getRoomById(id);
+    }
 
-        return roomRepository.save(room);
+    @GetMapping("/api/rooms/search")
+    public List<Room> searchRooms(@RequestParam(required = false) String location) {
+        return roomService.searchRoomsByLocation(location);
+    }
+
+    @PostMapping("/api/admin/rooms")
+    public Room createRoom(@RequestBody RoomRequest request) {
+        return roomService.createRoom(request);
+    }
+
+    @PutMapping("/api/admin/rooms/{id}")
+    public Room updateRoom(
+            @PathVariable String id,
+            @RequestBody RoomRequest request
+    ) {
+        return roomService.updateRoom(id, request);
+    }
+
+    @DeleteMapping("/api/admin/rooms/{id}")
+    public String deleteRoom(@PathVariable String id) {
+        roomService.deleteRoom(id);
+        return "Room deleted successfully";
     }
 }
