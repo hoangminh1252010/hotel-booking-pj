@@ -5,8 +5,16 @@ export const roomApi = {
 
   getRoomById: (id) => axiosClient.get(`/rooms/${id}`),
 
-  searchRooms: (location) =>
-    axiosClient.get(`/rooms/search?location=${location}`),
+searchRooms: ({ location, checkInDate, checkOutDate, guests }) => {
+  const params = new URLSearchParams();
+
+  if (location) params.append("location", location);
+  if (checkInDate) params.append("checkInDate", checkInDate);
+  if (checkOutDate) params.append("checkOutDate", checkOutDate);
+  if (guests) params.append("guests", guests);
+
+  return axiosClient.get(`/rooms/search?${params.toString()}`);
+},
 
   createRoom: (data) => axiosClient.post("/admin/rooms", data),
 

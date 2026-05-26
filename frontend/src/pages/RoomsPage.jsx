@@ -1,11 +1,42 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { roomApi } from "../api/roomApi";
 
 function RoomsPage() {
+  const [searchParams] = useSearchParams();
+
+  const initialLocation = searchParams.get("location") || "";
+  const initialCheckIn = searchParams.get("checkInDate") || "";
+  const initialCheckOut = searchParams.get("checkOutDate") || "";
+  const initialGuests = searchParams.get("guests") || "";
+
   const [rooms, setRooms] = useState([]);
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState(initialLocation);
   const [loading, setLoading] = useState(true);
+
+  const searchRooms = async ({
+    locationValue = "",
+    checkInDate = "",
+    checkOutDate = "",
+    guests = "",
+  }) => {
+    try {
+      setLoading(true);
+
+      const response = await roomApi.searchRooms({
+        location: locationValue,
+        checkInDate,
+        checkOutDate,
+        guests,
+      });
+
+      setRooms(response.data);
+    } catch (error) {
+      console.error("Failed to search rooms:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchRooms = async () => {
     try {
@@ -22,20 +53,34 @@ function RoomsPage() {
   const handleSearch = async (e) => {
     e.preventDefault();
 
-    try {
-      setLoading(true);
-      const response = await roomApi.searchRooms(location);
-      setRooms(response.data);
-    } catch (error) {
-      console.error("Failed to search rooms:", error);
-    } finally {
-      setLoading(false);
-    }
+    await searchRooms({
+      locationValue: location,
+      checkInDate: initialCheckIn,
+      checkOutDate: initialCheckOut,
+      guests: initialGuests,
+    });
+  };
+
+  const handleReset = async () => {
+    setLocation("");
+    await fetchRooms();
   };
 
   useEffect(() => {
-    fetchRooms();
-  }, []);
+    const hasSearchParams =
+      initialLocation || initialCheckIn || initialCheckOut || initialGuests;
+
+    if (hasSearchParams) {
+      searchRooms({
+        locationValue: initialLocation,
+        checkInDate: initialCheckIn,
+        checkOutDate: initialCheckOut,
+        guests: initialGuests,
+      });
+    } else {
+      fetchRooms();
+    }
+  }, [initialLocation, initialCheckIn, initialCheckOut, initialGuests]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -45,6 +90,19 @@ function RoomsPage() {
           Search and book hotel or homestay rooms.
         </p>
       </div>
+
+      {(initialLocation || initialCheckIn || initialCheckOut || initialGuests) && (
+        <div className="mb-8 rounded-2xl bg-white p-5 shadow">
+          <p className="font-semibold text-slate-900">Thông tin tìm kiếm</p>
+
+          <div className="mt-3 grid gap-3 text-sm text-slate-600 md:grid-cols-4">
+            <p>Điểm đến: {initialLocation || "Tất cả"}</p>
+            <p>Nhận phòng: {initialCheckIn || "Chưa chọn"}</p>
+            <p>Trả phòng: {initialCheckOut || "Chưa chọn"}</p>
+            <p>Số khách: {initialGuests || "Chưa chọn"}</p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSearch} className="mb-8 flex gap-3">
         <input
@@ -60,7 +118,7 @@ function RoomsPage() {
 
         <button
           type="button"
-          onClick={fetchRooms}
+          onClick={handleReset}
           className="rounded-xl border border-slate-300 px-6 py-3 font-medium text-slate-700"
         >
           Reset

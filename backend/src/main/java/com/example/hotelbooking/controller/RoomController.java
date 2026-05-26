@@ -25,8 +25,18 @@ public class RoomController {
     }
 
     @GetMapping("/api/rooms/search")
-    public List<Room> searchRooms(@RequestParam(required = false) String location) {
-        return roomService.searchRoomsByLocation(location);
+    public List<Room> searchRooms(
+        @RequestParam(required = false) String location,
+        @RequestParam(required = false) String checkInDate,
+        @RequestParam(required = false) String checkOutDate,
+        @RequestParam(required = false) Integer guests
+    ) {
+    return roomService.searchAvailableRooms(
+            location,
+            checkInDate,
+            checkOutDate,
+            guests
+    );
     }
 
     @PostMapping("/api/admin/rooms")

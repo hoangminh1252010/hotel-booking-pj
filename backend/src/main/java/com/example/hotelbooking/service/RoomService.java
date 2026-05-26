@@ -5,14 +5,17 @@ import com.example.hotelbooking.model.Room;
 import com.example.hotelbooking.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import com.example.hotelbooking.model.Booking;
+import com.example.hotelbooking.model.BookingStatus;
+import com.example.hotelbooking.repository.BookingRepository;
 import java.time.LocalDateTime;
 import java.util.List;
-
+import java.time.LocalDate;
+import java.util.ArrayList;
 @Service
 @RequiredArgsConstructor
 public class RoomService {
-
+    private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
 
     public List<Room> getAllActiveRooms() {
@@ -23,7 +26,71 @@ public class RoomService {
         return roomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Room not found"));
     }
+    public List<Room> searchAvailableRooms(
+        String location,
+        String checkInDate,
+        String checkOutDate,
+        Integer guests
+) {
+    List<Room> rooms;
 
+    if (location == null || location.trim().isEmpty()) {
+        rooms = roomRepository.findByActiveTrue();
+    } else {
+        rooms = roomRepository.findByLocationContainingIgnoreCaseAndActiveTrue(location);
+    }
+
+    List<Room> filteredRooms = new ArrayList<>();
+
+    for (Room room : rooms) {
+        boolean matchCapacity = guests == null || room.getCapacity() >= guests;
+
+        boolean matchAvailability = true;
+
+        if (checkInDate != null && !checkInDate.isBlank()
+                && checkOutDate != null && !checkOutDate.isBlank()) {
+
+            LocalDate checkIn = LocalDate.parse(checkInDate);
+            LocalDate checkOut = LocalDate.parse(checkOutDate);
+
+            matchAvailability = isRoomAvailable(
+                    room.getId(),
+                    checkIn,
+                    checkOut
+            );
+        }
+
+        if (matchCapacity && matchAvailability) {
+            filteredRooms.add(room);
+        }
+    }
+
+    return filteredRooms;
+}
+private boolean isRoomAvailable(
+        String roomId,
+        LocalDate checkIn,
+        LocalDate checkOut
+) {
+    List<Booking> existingBookings =
+            bookingRepository.findByRoomIdAndStatusNot(
+                    roomId,
+                    BookingStatus.CANCELLED
+            );
+
+    for (Booking booking : existingBookings) {
+        boolean isOverlapping =
+                checkIn.isBefore(booking.getCheckOutDate())
+                        &&
+                        checkOut.isAfter(booking.getCheckInDate());
+
+        if (isOverlapping) {
+            return false;
+        }
+    }
+
+    return true;
+}
     public List<Room> searchRoomsByLocation(String location) {
         if (location == null || location.trim().isEmpty()) {
             return roomRepository.findByActiveTrue();
